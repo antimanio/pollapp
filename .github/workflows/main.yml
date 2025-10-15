@@ -12,7 +12,6 @@ jobs:
       uses: gradle/actions/setup-gradle@v3
     - name: Make gradlew executable
       run: chmod +x ./gradlew
-      working-directory: demo
     - name: Build with Gradle
       run: ./gradlew build
       working-directory: demo
