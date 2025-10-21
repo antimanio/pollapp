@@ -8,12 +8,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import dat250.projects.pollapp.model.Poll;
 import dat250.projects.pollapp.model.User;
 import dat250.projects.pollapp.model.Vote;
 import dat250.projects.pollapp.model.VoteOption;
+import dat250.projects.pollapp.repository.PollRepository;
+import dat250.projects.pollapp.repository.UserRepository;
+import dat250.projects.pollapp.repository.VoteOptionRepository;
+import dat250.projects.pollapp.repository.VoteRepository;
+import jakarta.transaction.Transactional;
 
 /**
  * PollService for usage as a midleman of controller
@@ -23,8 +29,20 @@ import dat250.projects.pollapp.model.VoteOption;
 @Service
 public class PollService {
 
-	private final Map<String, User> users = new HashMap<>();
-	private final Map<String, Poll> polls = new HashMap<>();
+//	private final Map<String, User> users = new HashMap<>();
+//	private final Map<String, Poll> polls = new HashMap<>();
+	
+	@Autowired
+	private UserRepository userrepo;
+	
+	@Autowired
+	private PollRepository pollrepo;
+	
+	@Autowired
+	private VoteOptionRepository voteoptionrepo;
+	
+	@Autowired
+	private VoteRepository voterepo;
 
 	/**
 	 * Creates user
@@ -34,14 +52,34 @@ public class PollService {
 	 * @return User
 	 * 
 	 */
+	 @Transactional
 	public User createUser(String name, String email) {
 		User user = new User();
 		user.setEmail(email);
 		user.setUsername(name);
-		users.put(name, user);
+			if(userrepo.findByEmail(email).isPresent()) {
+				throw new RuntimeException("User with email " + email + " already exists");
+			}
+		
+		userrepo.save(user);
 		return user;
 
 	}
+	
+	/**
+	 * Find user
+	 *
+	 * @param email
+	 * @return User
+	 * 
+	 */
+	public Optional<User> findUser(String email) {
+		
+		return userrepo.findByEmail(email);
+
+	}
+	
+	
 
 	/**
 	 * Give all user
@@ -50,7 +88,8 @@ public class PollService {
 	 * 
 	 */
 	public Collection<User> listUsers() {
-		return users.values();
+		
+		return (Collection<User>) userrepo.findAll();
 	}
 
 	/**
@@ -60,7 +99,7 @@ public class PollService {
 	 * 
 	 */
 	public Collection<Poll> listPolls() {
-		return polls.values();
+		return (Collection<Poll>) pollrepo.findAll();
 	}
 
 	/**
@@ -100,7 +139,10 @@ public class PollService {
 		}
 		poll.setVoteoption(voteoptionlist);
 		user.getPoll().add(poll);
-		polls.put(question, poll);
+	
+		
+		
+		pollrepo.save(poll);
 		return poll;
 	}
 
@@ -112,10 +154,15 @@ public class PollService {
 	 * 
 	 * 
 	 */
+	@Transactional
 	public void deletePoll(Poll poll) {
-		polls.remove(poll.getQuestion());
-		users.values().forEach(u -> u.getPoll().remove(poll));
-		users.values().forEach(u -> u.getVote().removeIf(v -> poll.getVoteoption().contains(v.getVotedOn())));
+		
+	    
+
+	    // Delete the poll with  cascade and orphanRemoval and also mapping from user to poll
+	    pollrepo.delete(poll);
+
+		
 	}
 
 	/**
@@ -123,32 +170,44 @@ public class PollService {
 	 *
 	 * @param user
 	 * @param poll
-	 * @param option
+	 * @param index
 	 * @return Vote
 	 * 
 	 */
-	public Vote vote(User user, Poll poll, VoteOption option) throws Exception {
+	@Transactional
+	public Vote vote(User user, Poll poll, int index) {
+		// Fetch managed entities
+	    User managedUser = userrepo.findById(user.getId()).orElseThrow();
+	    Poll managedPoll = pollrepo.findById(poll.getId()).orElseThrow();
+	    VoteOption managedOption = managedPoll.getVoteoption().get(index);
 
-		// Find any existing vote by this user in this poll
-		Optional<Vote> existingVote = user.getVote().stream().filter(v -> poll.getVoteoption().contains(v.getVotedOn()))
-				.findFirst();
+	    // Find existing vote
+	    Optional<Vote> existingVote = managedUser.getVote().stream()
+	            .filter(v -> managedPoll.getVoteoption().contains(v.getVotedOn()))
+	            .findFirst();
 
-		// Remove it if present
-		existingVote.ifPresent(v -> {
-			user.getVote().remove(v);
-			v.getVotedOn().getVote().remove(v);
-		});
-		// Create new vote
-		Vote vote = new Vote();
-		vote.setPublishedAt(Instant.now());
-		vote.setVotedOn(option);
-		vote.setUser(user);
+	    if (existingVote.isPresent()) {
+	        Vote voteToDelete = existingVote.get();
 
-		user.getVote().add(vote);
+	        managedUser.getVote().remove(voteToDelete);
+	        voteToDelete.getVotedOn().getVote().remove(voteToDelete);
 
-		option.getVote().add(vote);
+	        
+	        voterepo.delete(voteToDelete);
+	    }
 
-		return vote;
+	   
+	    Vote vote = new Vote();
+	    vote.setPublishedAt(Instant.now());
+	    vote.setUser(managedUser);
+	    vote.setVotedOn(managedOption);
+
+	    // Add to collections
+	    managedUser.getVote().add(vote);
+	    managedOption.getVote().add(vote);
+
+	    // Save vote
+	    return voterepo.save(vote);
 
 	}
 

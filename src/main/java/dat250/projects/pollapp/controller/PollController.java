@@ -119,8 +119,7 @@ public class PollController {
 				.orElseThrow();
 		Poll poll = pollservice.listPolls().stream().filter(p -> p.getQuestion().equals(pollQuestion)).findFirst()
 				.orElseThrow();
-		VoteOption option = poll.getVoteoption().get(optionIndex);
-		return pollservice.vote(user, poll, option);
+		return pollservice.vote(user, poll, optionIndex);
 	}
 
 	/**
@@ -138,5 +137,7 @@ public class PollController {
 		}
 
 	}
+	
+	
 
 }

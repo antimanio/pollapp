@@ -5,9 +5,11 @@ import java.time.Instant;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
+import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 
 /**
@@ -15,6 +17,7 @@ import jakarta.persistence.OneToMany;
  * 
  * @author Biljan
  */
+@Entity
 public class Vote {
 
 	@Id
@@ -24,11 +27,11 @@ public class Vote {
 	private Instant publishedAt;
 
 	@JsonBackReference("voted")
-	@OneToMany
+	@ManyToOne
 	private User user;
 
 	@JsonBackReference("votedoption")
-	@OneToMany
+	@ManyToOne
 	private VoteOption votedOn;
 
 	public int getId() {

@@ -26,6 +26,8 @@ dependencies {
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-api:2.6.0")
 	implementation("org.hibernate.orm:hibernate-core:7.1.1.Final")
 	implementation("jakarta.persistence:jakarta.persistence-api:3.2.0")
+	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+	runtimeOnly("com.h2database:h2")
 }
 
 tasks.withType<Test> {

@@ -5,11 +5,14 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 
 
 /**
@@ -18,6 +21,7 @@ import jakarta.persistence.ManyToOne;
  * @author Biljan
  */
 @Entity
+@Table(name = "app_user")
 public class User {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,11 +32,11 @@ private String  username;
 private String email;
 
 
-@ManyToOne
+@OneToMany( mappedBy = "createdby",orphanRemoval = true)
 @JsonManagedReference("created")
 private  List<Poll> poll = new ArrayList<>();;
 
-@ManyToOne
+@OneToMany(mappedBy = "user",cascade = CascadeType.ALL, orphanRemoval = true)
 @JsonManagedReference("voted")
 private  List<Vote> vote =new ArrayList<>();;
 

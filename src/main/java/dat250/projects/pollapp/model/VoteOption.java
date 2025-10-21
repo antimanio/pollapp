@@ -6,6 +6,8 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -17,6 +19,7 @@ import jakarta.persistence.OneToMany;
  * 
  * @author Biljan
  */
+@Entity
 public class VoteOption {
 
 	@Id
@@ -26,11 +29,11 @@ public class VoteOption {
 	private String caption;
 	private int presentationOrder;
 
-	@ManyToOne
+	@OneToMany(mappedBy = "votedOn",cascade = CascadeType.ALL, orphanRemoval = true)
 	@JsonManagedReference("votedoption")
 	private List<Vote> vote = new ArrayList<>();
 
-	@OneToMany
+	@ManyToOne
 	@JsonBackReference("options")
 	private Poll poll;
 
