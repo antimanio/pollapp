@@ -28,6 +28,8 @@ dependencies {
 	implementation("jakarta.persistence:jakarta.persistence-api:3.2.0")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	runtimeOnly("com.h2database:h2")
+	implementation("redis.clients:jedis:6.2.0")
+    implementation("com.rabbitmq:amqp-client:5.26.0")
 }
 
 tasks.withType<Test> {

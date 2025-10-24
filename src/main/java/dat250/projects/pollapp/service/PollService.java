@@ -19,6 +19,7 @@ import dat250.projects.pollapp.repository.PollRepository;
 import dat250.projects.pollapp.repository.UserRepository;
 import dat250.projects.pollapp.repository.VoteOptionRepository;
 import dat250.projects.pollapp.repository.VoteRepository;
+import dat250.projects.pollapp.utils.RabbitMQBroker;
 import jakarta.transaction.Transactional;
 
 /**
@@ -31,6 +32,8 @@ public class PollService {
 
 //	private final Map<String, User> users = new HashMap<>();
 //	private final Map<String, Poll> polls = new HashMap<>();
+	
+	private static final String RABBITMQT_HOST = "localhost";  // change to rabbitmq for docker
 	
 	@Autowired
 	private UserRepository userrepo;
@@ -143,6 +146,19 @@ public class PollService {
 		
 		
 		pollrepo.save(poll);
+		
+		
+		 RabbitMQBroker rabbitMQBroker = new RabbitMQBroker(RABBITMQT_HOST); // pass host
+		 try {
+		        // Create RabbitMQ topic
+		        rabbitMQBroker.createTopic(question);
+
+		        // Subscribe PollApp to handle votes
+		        rabbitMQBroker.subscribe(question);
+		    } catch (Exception e) {
+		        e.printStackTrace();
+		    }
+		
 		return poll;
 	}
 
@@ -206,6 +222,24 @@ public class PollService {
 	    managedUser.getVote().add(vote);
 	    managedOption.getVote().add(vote);
 
+	    
+	 // --- Publish vote event to RabbitMQ ---
+        RabbitMQBroker broker = new RabbitMQBroker(RABBITMQT_HOST); 
+        String topicName = poll.getQuestion(); 
+        String message = managedOption.getCaption();  
+        int votes = managedOption.getVote().size();
+        String name = user.getUsername();
+ 
+        try {
+			broker.publish(topicName, name+" voted on "+message+" For question: "+topicName+" Total-Votes:"+votes);
+		} catch (Exception e) {
+		
+			e.printStackTrace();
+		}
+	    
+	    
+	    
+	    
 	    // Save vote
 	    return voterepo.save(vote);
 
