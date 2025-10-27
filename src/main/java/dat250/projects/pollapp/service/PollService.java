@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import dat250.projects.pollapp.utils.RedisCache;
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -34,7 +36,9 @@ public class PollService {
 //	private final Map<String, Poll> polls = new HashMap<>();
 	
 	private static final String RABBITMQT_HOST = "localhost";  // change to rabbitmq for docker
-	
+	private static final String REDIS_HOST = "localhost"; //change later
+	private static final int REDIS_PORT = 6379;
+
 	@Autowired
 	private UserRepository userrepo;
 	
@@ -102,7 +106,16 @@ public class PollService {
 	 * 
 	 */
 	public Collection<Poll> listPolls() {
-		return (Collection<Poll>) pollrepo.findAll();
+		RedisCache redisCache = new RedisCache(REDIS_HOST, REDIS_PORT);
+		String redisKey = "polls:all";
+		Collection<Poll> polls = redisCache.fetchOrUpdateCache(
+				redisKey,
+				() -> (Collection<Poll>) pollrepo.findAll(),
+				60,
+				new TypeReference<Collection<Poll>>() {}
+		);
+
+		return polls;
 	}
 
 	/**
@@ -113,6 +126,7 @@ public class PollService {
 	 * 
 	 */
 	public Collection<Vote> listVotes(User user) {
+
 		return user.getVote();
 	}
 
@@ -127,6 +141,7 @@ public class PollService {
 	 * 
 	 */
 	public Poll createPoll(User user, String question, Instant validUntil, List<String> option) {
+		RedisCache redisCache = new RedisCache(REDIS_HOST, REDIS_PORT);
 		Poll poll = new Poll();
 		poll.setCreatedby(user);
 		poll.setQuestion(question);
@@ -146,8 +161,10 @@ public class PollService {
 		
 		
 		pollrepo.save(poll);
-		
-		
+
+		// clear cache for polls
+		redisCache.invalidateCache("polls:all");
+
 		 RabbitMQBroker rabbitMQBroker = new RabbitMQBroker(RABBITMQT_HOST); // pass host
 		 try {
 		        // Create RabbitMQ topic
@@ -173,7 +190,6 @@ public class PollService {
 	@Transactional
 	public void deletePoll(Poll poll) {
 		
-	    
 
 	    // Delete the poll with  cascade and orphanRemoval and also mapping from user to poll
 	    pollrepo.delete(poll);
