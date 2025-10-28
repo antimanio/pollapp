@@ -3,12 +3,9 @@ package dat250.projects.pollapp.service;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
-import dat250.projects.pollapp.utils.RedisCache;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -50,27 +47,29 @@ public class PollService {
 	private VoteRepository voterepo;
 
 	@Autowired
-	private RedisCache redisCache;
+	private RedisService redisService;
 
 	/**
 	 * Creates user
 	 *
 	 * @param name
 	 * @param email
+	 * @param password
 	 * @return User
 	 * 
 	 */
 	 @Transactional
-	public User createUser(String name, String email) {
+	public User createUser(String name, String email, String password) {
 		User user = new User();
 		user.setEmail(email);
 		user.setUsername(name);
+		user.setPassword(password);
 			if(userrepo.findByEmail(email).isPresent()) {
 				throw new RuntimeException("User with email " + email + " already exists");
 			}
 		
 		userrepo.save(user);
-		redisCache.invalidateCache("users_all");
+		redisService.invalidateCache("users_all");
 		return user;
 	}
 	
@@ -92,7 +91,7 @@ public class PollService {
 	 * 
 	 */
 	public Collection<User> listUsers() {
-		Collection<User> users = redisCache.fetchOrUpdateCache(
+		Collection<User> users = redisService.fetchOrUpdateCache(
 				"users_all",
 				() -> (Collection<User>) userrepo.findAll(),
 				60,
@@ -108,7 +107,7 @@ public class PollService {
 	 * 
 	 */
 	public Collection<Poll> listPolls() {
-		Collection<Poll> polls = redisCache.fetchOrUpdateCache(
+		Collection<Poll> polls = redisService.fetchOrUpdateCache(
 				"polls_all",
 				() -> (Collection<Poll>) pollrepo.findAll(),
 				60,
@@ -157,7 +156,7 @@ public class PollService {
 		user.getPoll().add(poll);
 
 		pollrepo.save(poll);
-		redisCache.invalidateCache("polls_all");
+		redisService.invalidateCache("polls_all");
 
 		 RabbitMQBroker rabbitMQBroker = new RabbitMQBroker(RABBITMQT_HOST); // pass host
 		 try {
@@ -185,7 +184,7 @@ public class PollService {
 	public void deletePoll(Poll poll) {
 	    // Delete the poll with  cascade and orphanRemoval and also mapping from user to poll
 	    pollrepo.delete(poll);
-		redisCache.invalidateCache("polls_all");
+		redisService.invalidateCache("polls_all");
 	}
 
 	/**
@@ -246,7 +245,7 @@ public class PollService {
 
 	    // Save vote
 		vote = voterepo.save(vote);
-		redisCache.invalidateCache("polls_all");
+		redisService.invalidateCache("polls_all");
 
 		return vote;
 

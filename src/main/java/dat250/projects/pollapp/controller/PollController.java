@@ -58,20 +58,20 @@ public class PollController {
 	}
 
 	/**
-	 * Creates an user with service
+	 * Creates a user with service
 	 *
 	 * @param username
 	 * @param email
 	 * @return User
 	 * 
 	 */
-	@PostMapping("/users")
-	public User createUser(@RequestParam("username") String username, @RequestParam("email") String email) {
-		return pollservice.createUser(username, email);
+	@PostMapping("/user")
+	public User createUser(@RequestParam("username") String username, @RequestParam("email") String email, @RequestParam("password") String password) {
+		return pollservice.createUser(username, email, password);
 	}
 
 	/**
-	 * Gets votes from an user
+	 * Gets votes from a user
 	 *
 	 * @param username
 	 * @return List of votes from user
