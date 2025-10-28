@@ -36,8 +36,6 @@ public class PollService {
 //	private final Map<String, Poll> polls = new HashMap<>();
 	
 	private static final String RABBITMQT_HOST = "localhost";  // change to rabbitmq for docker
-	private static final String REDIS_HOST = "localhost"; //change later
-	private static final int REDIS_PORT = 6379;
 
 	@Autowired
 	private UserRepository userrepo;
@@ -50,6 +48,9 @@ public class PollService {
 	
 	@Autowired
 	private VoteRepository voterepo;
+
+	@Autowired
+	private RedisCache redisCache;
 
 	/**
 	 * Creates user
@@ -69,8 +70,8 @@ public class PollService {
 			}
 		
 		userrepo.save(user);
+		redisCache.invalidateCache("users_all");
 		return user;
-
 	}
 	
 	/**
@@ -81,12 +82,8 @@ public class PollService {
 	 * 
 	 */
 	public Optional<User> findUser(String email) {
-		
 		return userrepo.findByEmail(email);
-
 	}
-	
-	
 
 	/**
 	 * Give all user
@@ -95,8 +92,13 @@ public class PollService {
 	 * 
 	 */
 	public Collection<User> listUsers() {
-		
-		return (Collection<User>) userrepo.findAll();
+		Collection<User> users = redisCache.fetchOrUpdateCache(
+				"users_all",
+				() -> (Collection<User>) userrepo.findAll(),
+				60,
+				new TypeReference<Collection<User>>() {}
+		);
+		return users;
 	}
 
 	/**
@@ -106,15 +108,12 @@ public class PollService {
 	 * 
 	 */
 	public Collection<Poll> listPolls() {
-		RedisCache redisCache = new RedisCache(REDIS_HOST, REDIS_PORT);
-		String redisKey = "polls:all";
 		Collection<Poll> polls = redisCache.fetchOrUpdateCache(
-				redisKey,
+				"polls_all",
 				() -> (Collection<Poll>) pollrepo.findAll(),
 				60,
 				new TypeReference<Collection<Poll>>() {}
 		);
-
 		return polls;
 	}
 
@@ -141,7 +140,6 @@ public class PollService {
 	 * 
 	 */
 	public Poll createPoll(User user, String question, Instant validUntil, List<String> option) {
-		RedisCache redisCache = new RedisCache(REDIS_HOST, REDIS_PORT);
 		Poll poll = new Poll();
 		poll.setCreatedby(user);
 		poll.setQuestion(question);
@@ -157,13 +155,9 @@ public class PollService {
 		}
 		poll.setVoteoption(voteoptionlist);
 		user.getPoll().add(poll);
-	
-		
-		
-		pollrepo.save(poll);
 
-		// clear cache for polls
-		redisCache.invalidateCache("polls:all");
+		pollrepo.save(poll);
+		redisCache.invalidateCache("polls_all");
 
 		 RabbitMQBroker rabbitMQBroker = new RabbitMQBroker(RABBITMQT_HOST); // pass host
 		 try {
@@ -189,12 +183,9 @@ public class PollService {
 	 */
 	@Transactional
 	public void deletePoll(Poll poll) {
-		
-
 	    // Delete the poll with  cascade and orphanRemoval and also mapping from user to poll
 	    pollrepo.delete(poll);
-
-		
+		redisCache.invalidateCache("polls_all");
 	}
 
 	/**
@@ -252,12 +243,12 @@ public class PollService {
 		
 			e.printStackTrace();
 		}
-	    
-	    
-	    
-	    
+
 	    // Save vote
-	    return voterepo.save(vote);
+		vote = voterepo.save(vote);
+		redisCache.invalidateCache("polls_all");
+
+		return vote;
 
 	}
 

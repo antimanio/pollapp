@@ -3,6 +3,7 @@ package dat250.projects.pollapp.utils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.springframework.stereotype.Component;
 import redis.clients.jedis.JedisPooled;
 import java.util.function.Supplier;
 
@@ -23,18 +24,15 @@ import java.util.function.Supplier;
  * Java 8 date/time classes (e.g., Instant, LocalDateTime).
  */
 
+@Component
 public class RedisCache {
     private final JedisPooled jedis;
     private final ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    private static final String REDIS_HOST = "localhost"; //change later
+    private static final int REDIS_PORT = 6379;
 
-    /**
-     * Initializes a Redis cache instance.
-     *
-     * @param host Redis server hostname or IP
-     * @param port Redis server port
-     */
-    public RedisCache(String host, int port) {
-        this.jedis = new JedisPooled(host, port);
+    public RedisCache() {
+        this.jedis = new JedisPooled(REDIS_HOST, REDIS_PORT);
     }
 
     /**
