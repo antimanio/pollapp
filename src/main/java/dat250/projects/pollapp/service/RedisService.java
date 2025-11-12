@@ -28,7 +28,7 @@ import java.util.function.Supplier;
 public class RedisService {
     private final JedisPooled jedis;
     private final ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
-    private static final String REDIS_HOST = "localhost"; //change to redis later
+    private static final String REDIS_HOST = "redis"; //change to redis later
     private static final int REDIS_PORT = 6379;
 
     public RedisService() {

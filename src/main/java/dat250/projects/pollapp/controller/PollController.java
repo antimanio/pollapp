@@ -32,6 +32,24 @@ public class PollController {
 	@Autowired
 	private PollService pollservice;
 
+	
+	 private final String instanceName;
+
+	    public PollController() {
+	        // Get the container/host name (works in Docker)
+	        this.instanceName = System.getenv().getOrDefault("HOSTNAME", "unknown-instance");
+	    }
+
+	    @GetMapping("/test")
+	    public String getInstanceName() {
+	        return "Hello from instance: " + instanceName;
+	    }
+	
+	
+	
+	
+	
+	
 	/**
 	 * Gets all users
 	 *

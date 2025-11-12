@@ -32,7 +32,7 @@ public class PollService {
 //	private final Map<String, User> users = new HashMap<>();
 //	private final Map<String, Poll> polls = new HashMap<>();
 	
-	private static final String RABBITMQT_HOST = "localhost";  // change to rabbitmq for docker
+	private static final String RABBITMQT_HOST = "rabbitmq";  // change to rabbitmq for docker
 
 	@Autowired
 	private UserRepository userrepo;
